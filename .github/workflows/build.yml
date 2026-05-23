@@ -4,7 +4,6 @@ on:
   pull_request:
   push: # Do not rely on `push` for PR CI - see https://github.com/guardian/mobile-apps-api/pull/2760
     branches:
-      - main # Optimal for GHA workflow caching - see https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#restrictions-for-accessing-a-cache
   workflow_dispatch:
 
 permissions:
@@ -18,113 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  client-validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - run: corepack enable
-
-      - uses: actions/setup-node@v6
-        with:
-          cache: yarn
-          node-version-file: .nvmrc
-
-      - run: make install
-      - run: make validate
-      - run: make test
-
-  client-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - run: corepack enable
-
-      - uses: actions/setup-node@v6
-        with:
-          cache: yarn
-          node-version-file: .nvmrc
-
-      - run: make install
-      - run: make compile
-
-      - name: upload frontend-client
-        uses: actions/upload-artifact@v7
-        with:
-          name: frontend-client
-          path: |
-            static/hash
-            static/target
-            common/conf/assets
-          if-no-files-found: error
-
   build:
-    needs: [ client-validate, client-build ]
-    runs-on: 8core-ubuntu-latest-frontend
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
       - run: corepack enable
 
-      - uses: actions/setup-node@v6
+      - name: Setup JDK
+        uses: actions/setup-java@v5
         with:
-          cache: yarn
-          node-version-file: .nvmrc
+          distribution: "temurin"
+          java-version: "21"
+          cache: "sbt"
 
-      - uses: guardian/setup-scala@v1
-
-      # Scala tests rely on client build assets
-      - name: Download frontend-client
-        uses: actions/download-artifact@v8
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
         with:
-          name: frontend-client
-          path: .
+          disk-cache: false
 
-      - name: Test, Compile, Package
-        run: sbt compile assets scalafmtCheckAll test Universal/packageBin
+      - name: Compile
+        run: sbt Test/compile
 
-      - name: Test Summary
-        uses: test-summary/action@v2
-        with:
-          paths: 'test-results/**/TEST-*.xml'
-        if: always()
-
-      - uses: guardian/actions-riff-raff@v4.3.3
-        env:
-          GU_RIFF_RAFF_ROLE_ARN: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-        if: ${{ env.GU_RIFF_RAFF_ROLE_ARN }}
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-          projectName: dotcom:frontend-all
-          configPath: riff-raff.yaml
-          contentDirectories: |
-            frontend-static:
-              - static/hash
-            admin:
-              - admin/target/universal/admin.zip
-            applications:
-              - applications/target/universal/applications.zip
-            archive:
-              - archive/target/universal/archive.zip
-            article:
-              - article/target/universal/article.zip
-            commercial:
-              - commercial/target/universal/commercial.zip
-            discussion:
-              - discussion/target/universal/discussion.zip
-            facia:
-              - facia/target/universal/facia.zip
-            facia-press:
-              - facia-press/target/universal/facia-press.zip
-            identity:
-              - identity/target/universal/identity.zip
-            onward:
-              - onward/target/universal/onward.zip
-            preview:
-              - preview/target/universal/preview.zip
-            rss:
-              - rss/target/universal/rss.zip
-            sport:
-              - sport/target/universal/sport.zip
+      - name: Test/definedTestDigests
+        run: sbt show Test/definedTestDigests

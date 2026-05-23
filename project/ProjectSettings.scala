@@ -2,15 +2,15 @@ package com.gu
 
 import com.gu.versioninfo.VersionInfo
 import com.typesafe.sbt.packager.universal.UniversalPlugin
-import sbt._
+import sbt.{ *, given }
 import sbt.Keys._
 import com.gu.Dependencies._
 import play.sbt.{PlayPekkoHttpServer, PlayScala}
 import com.typesafe.sbt.SbtNativePackager.Universal
 import com.typesafe.sbt.packager.Keys.packageName
-import sbtbuildinfo.{BuildInfoKey, BuildInfoOption, BuildInfoPlugin}
+import sbtbuildinfo.{ Entry, BuildInfoKey, BuildInfoOption, BuildInfoPlugin}
 import sbtbuildinfo.BuildInfoKeys.{buildInfoKeys, buildInfoOptions, buildInfoPackage}
-
+import sbtbuildinfo.PluginCompat.{ *, given }
 object ProjectSettings {
 
   val cleanAll = taskKey[Unit]("Cleans all projects in a build, regardless of dependencies")
@@ -62,9 +62,10 @@ object ProjectSettings {
   val frontendTestSettings = Seq(
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaTest, "-u", s"test-results/scala-${scalaVersion.value}", "-o"),
-    concurrentRestrictions in Global := List(Tags.limit(Tags.Test, 4)),
+    Global / concurrentRestrictions := List(Tags.limit(Tags.Test, 4)),
     // Copy unit test resources https://groups.google.com/d/topic/play-framework/XD3X6R-s5Mc/discussion
-    Test / unmanagedClasspath += (baseDirectory map { bd => Attributed.blank(bd / "test") }).value,
+    // Test / unmanagedClasspath += (baseDirectory map { bd => Attributed.blank(bd / "test") }).value,
+
     libraryDependencies ++= Seq(
       scalaTest,
       scalaTestPlus,
@@ -77,7 +78,7 @@ object ProjectSettings {
     Test / javaOptions += "-Xmx2048M",
     Test / javaOptions += "-XX:ReservedCodeCacheSize=128m",
     Test / baseDirectory := file("."),
-    Test / envVars := Map("STAGE" -> testStage),
+    // Test / envVars := Map("STAGE" -> testStage),
     // Set testResultLogger back to the default, fixes an issue with `sbt-teamcity-logger`
     //   See: https://github.com/JetBrains/sbt-tc-logger/issues/9
     Test / test / testResultLogger := TestResultLogger.Default,
@@ -87,9 +88,9 @@ object ProjectSettings {
 
   def frontendRootSettings: Seq[Def.Setting[Task[Unit]]] =
     List(
-      testAll := (Test / test)
-        .all(ScopeFilter(inAggregates(ThisProject, includeRoot = false)))
-        .value,
+      // testAll := (Test / test)
+      //   .all(ScopeFilter(inAggregates(ThisProject, includeRoot = false)))
+      //   .value,
     )
 
   def root(): Project =
@@ -113,10 +114,10 @@ object ProjectSettings {
       buildInfoPackage := buildInfoPackageName,
       buildInfoOptions += BuildInfoOption.Traits("app.FrontendBuildInfo"),
       buildInfoKeys := {
-        Seq[BuildInfoKey](
-          "buildNumber" -> sys.env.get("GITHUB_RUN_NUMBER").getOrElse("unknown"),
-          "gitCommitId" -> sys.env.get("GITHUB_SHA").getOrElse("unknown"),
-          "buildTime" -> System.currentTimeMillis,
+        Seq[Entry[?]](
+          BuildInfoKey.action("buildNumber") { sys.env.get("GITHUB_RUN_NUMBER").getOrElse("unknown") },
+          BuildInfoKey.action("gitCommitId") { sys.env.get("GITHUB_SHA").getOrElse("unknown") },
+          BuildInfoKey.action("buildTime") { System.currentTimeMillis },
         )
       },
     )

@@ -13,6 +13,10 @@ https://support.snyk.io/hc/en-us/articles/9590215676189-Deeply-nested-Scala-proj
  */
 ThisBuild / asciiGraphWidth := 999999999
 
+
+libraryDependencySchemes += "org.scala-lang.modules" %% "scala-parser-combinators" % VersionScheme.Always
+
+
 val common = library("common")
   .settings(
     libraryDependencies ++= Seq(
@@ -67,6 +71,7 @@ val common = library("common")
       pekkoSerializationJackson,
       pekkoActorTyped,
       supportInternationalisation,
+      "javax.inject" % "javax.inject" % "1",
     ) ++ jackson,
   )
 

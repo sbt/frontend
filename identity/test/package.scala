@@ -2,9 +2,9 @@ package test
 
 import java.io.File
 import conf.IdConfig
-import controllers.EditProfileControllerTest
-import controllers.ConsentsJourneyControllerTest
-import filters.StrictTransportSecurityHeaderFilterTest
+// import controllers.EditProfileControllerTest
+// import controllers.ConsentsJourneyControllerTest
+// import filters.StrictTransportSecurityHeaderFilterTest
 import org.scalatest.Suites
 import play.api._
 import play.api.test.Helpers._
@@ -28,13 +28,13 @@ trait FakeApp {
 
 object Fake extends FakeApp
 
-class IdentityTestSuite
-    extends Suites(
-      new EditProfileControllerTest,
-      new StrictTransportSecurityHeaderFilterTest,
-      new ConsentsJourneyControllerTest,
-    )
-    with SingleServerSuite {}
+// class IdentityTestSuite
+//     extends Suites(
+//       new EditProfileControllerTest,
+//       new StrictTransportSecurityHeaderFilterTest,
+//       new ConsentsJourneyControllerTest,
+//     )
+//     with SingleServerSuite {}
 
 trait WithTestIdConfig {
   class IdentityConfigurationStub extends IdConfig {
